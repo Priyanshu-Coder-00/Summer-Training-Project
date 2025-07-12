@@ -1,8 +1,11 @@
-// Versioned Document Tracker using Stack-Based Undo-Redo Simulation
 #include <iostream>
 #include <stack>
 #include <string>
+#include <fstream>
+#include <sstream>
+#include <algorithm> // For std::count
 using namespace std;
+
 class VersionedDocument {
 private:
     string currentContent;
@@ -10,16 +13,18 @@ private:
     stack<string> redoStack;
 
 public:
-    // Insert new text and store previous version in undo stack
     void insertText(const string& newText) {
         undoStack.push(currentContent);
         while (!redoStack.empty()) redoStack.pop();
         currentContent += newText + "\n";
-        cout << "Text inserted.\n";
+        cout << "\u2705 Text inserted.\n";
     }
 
-    // Delete last line from the document
     void deleteLastLine() {
+        if (currentContent.empty()) {
+            cout << "\u26A0\uFE0F Document is already empty.\n";
+            return;
+        }
         undoStack.push(currentContent);
         while (!redoStack.empty()) redoStack.pop();
 
@@ -30,58 +35,110 @@ public:
                 currentContent = currentContent.substr(0, secondLastNewLine + 1);
             else
                 currentContent = "";
-            cout << "Last line deleted.\n";
-        } else {
-            cout << "Document is already empty.\n";
+            cout << "\u2705 Last line deleted.\n";
         }
     }
 
-    // Undo the last operation
     void undo() {
         if (!undoStack.empty()) {
             redoStack.push(currentContent);
             currentContent = undoStack.top();
             undoStack.pop();
-            cout << "Undo successful.\n";
+            cout << "\u21A9\uFE0F Undo successful.\n";
         } else {
-            cout << "Nothing to undo.\n";
+            cout << "\u26A0\uFE0F Nothing to undo.\n";
         }
     }
 
-    // Redo the previously undone operation
     void redo() {
         if (!redoStack.empty()) {
             undoStack.push(currentContent);
             currentContent = redoStack.top();
             redoStack.pop();
-            cout << "Redo successful.\n";
+            cout << "\u21AA\uFE0F Redo successful.\n";
         } else {
-            cout << "Nothing to redo.\n";
+            cout << "\u26A0\uFE0F Nothing to redo.\n";
         }
     }
 
-    // Display current version of the document
     void display() {
-        cout << "\n--- Current Document ---\n";
+        cout << "\n\U0001F4C4 --- Current Document ---\n";
         cout << (currentContent.empty() ? "[Empty Document]\n" : currentContent);
-        cout << "------------------------\n";
+        cout << "--------------------------\n";
+        cout << "\U0001F4CC Total Lines: " << countLines() << "\n";
+    }
+
+    void clear() {
+        undoStack.push(currentContent);
+        while (!redoStack.empty()) redoStack.pop();
+        currentContent.clear();
+        cout << "\U0001F9F9 Document cleared.\n";
+    }
+
+    void saveToFile(const string& filename) {
+        ofstream outFile(filename);
+        if (outFile.is_open()) {
+            outFile << currentContent;
+            outFile.close();
+            cout << "\U0001F4BE Document saved to " << filename << "\n";
+        } else {
+            cout << "\u274C Failed to open file.\n";
+        }
+    }
+
+    void loadFromFile(const string& filename) {
+        ifstream inFile(filename);
+        if (inFile.is_open()) {
+            undoStack.push(currentContent);
+            while (!redoStack.empty()) redoStack.pop();
+
+            stringstream buffer;
+            buffer << inFile.rdbuf();
+            currentContent = buffer.str();
+            inFile.close();
+            cout << "\U0001F4C2 Document loaded from " << filename << "\n";
+        } else {
+            cout << "\u274C File not found.\n";
+        }
+    }
+
+    int countLines() {
+        if (currentContent.empty()) return 0;
+        return count(currentContent.begin(), currentContent.end(), '\n');
     }
 };
+
+void showMenu() {
+    cout << "\n=============================\n";
+    cout << "\U0001F4D8 Versioned Document Tracker\n";
+    cout << "=============================\n";
+    cout << "1. Insert Text\n";
+    cout << "2. Delete Last Line\n";
+    cout << "3. Undo\n";
+    cout << "4. Redo\n";
+    cout << "5. Display Document\n";
+    cout << "6. Clear Document\n";
+    cout << "7. Save to File\n";
+    cout << "8. Load from File\n";
+    cout << "9. Exit\n";
+    cout << "-----------------------------\n";
+    cout << "Enter your choice: ";
+}
 
 int main() {
     VersionedDocument doc;
     int choice;
-    string text;
+    string text, filename;
 
     while (true) {
-        cout << "\n1. Insert Text\n2. Delete Last Line\n3. Undo\n4. Redo\n5. Display\n6. Exit\nEnter choice: ";
+        showMenu();
         cin >> choice;
         cin.ignore();
 
         switch (choice) {
             case 1:
                 cout << "Enter text: ";
-                getline(std::cin, text);
+                getline(cin, text);
                 doc.insertText(text);
                 break;
             case 2:
@@ -97,10 +154,23 @@ int main() {
                 doc.display();
                 break;
             case 6:
-                cout << "Exiting...\n";
+                doc.clear();
+                break;
+            case 7:
+                cout << "Enter filename to save: ";
+                getline(cin, filename);
+                doc.saveToFile(filename);
+                break;
+            case 8:
+                cout << "Enter filename to load: ";
+                getline(cin, filename);
+                doc.loadFromFile(filename);
+                break;
+            case 9:
+                cout << "\U0001F44B Exiting program...\n";
                 return 0;
             default:
-                cout << "Invalid option.\n";
+                cout << "\u2757 Invalid choice. Try again.\n";
         }
     }
 }
