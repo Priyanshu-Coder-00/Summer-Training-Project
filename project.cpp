@@ -133,8 +133,14 @@ int main() {
     while (true) {
         showMenu();
         cin >> choice;
-        cin.ignore();
+         if (cin.fail()){
+            cin.clear(); // clear error flag
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // discard invalid input
+            cout << "\u274C Invalid input. Please enter a number between 1 and 9.\n";
+            continue;
+        }
 
+        cin.ignore();
         switch (choice) {
             case 1:
                 cout << "Enter text: ";
